@@ -53,15 +53,15 @@ class NewsStory(object):
         self.summary = summary
         self.link = link
 
-    def get_guid():
+    def get_guid(self):
         return self.guid
-    def get_title():
+    def get_title(self):
         return self.title
-    def get_subject():
+    def get_subject(self):
         return self.subject
-    def get_summary():
+    def get_summary(self):
         return self.summary
-    def get_link():
+    def get_link(self):
         return self.link
 
 #======================
@@ -85,30 +85,59 @@ class WordTrigger(Trigger):
         assert type(word) == str
         self.word = word
 
-    def is_word_in(text):
+    def is_word_in(self, text):
         assert type(text) == str
-        #TODO: fix this, it's kind of silly to do this way
-        if [text.split(i) for i in string.punctuation if self.word in text.split(i)]:
+        word = self.word.lower()
+        text = text.lower()
+        for i in string.punctuation:
+            text = text.replace(i, ' ')
+        text = text.split(' ')
+        if word in text:
             return True
         return False
 
-# TODO: TitleTrigger
-# TODO: SubjectTrigger
-# TODO: SummaryTrigger
-
+class TitleTrigger(WordTrigger):
+    def evaluate(self, story):
+        return self.is_word_in(story.get_title())
+class SubjectTrigger(WordTrigger):
+    def evaluate(self, story):
+        return self.is_word_in(story.get_subject())
+class SummaryTrigger(WordTrigger):
+    def evaluate(self, story):
+        return self.is_word_in(story.get_summary())
 
 # Composite Triggers
 # Problems 6-8
 
-# TODO: NotTrigger
-# TODO: AndTrigger
-# TODO: OrTrigger
+class NotTrigger(Trigger):
+    def __init__(self, other_trigger):
+        self.trigger = other_trigger
+    def evaluate(self, story):
+        return not self.trigger.evaluate(story)
+
+class AndTrigger(Trigger):
+    def __init__(self, trigger1, trigger2):
+        self.trigger1 = trigger1
+        self.trigger2 = trigger2
+    def evaluate(self, story):
+        return self.trigger1.evaluate(story) and self.trigger2.evaluate(story)
+
+class OrTrigger(Trigger):
+    def __init__(self, trigger1, trigger2):
+        self.trigger1 = trigger1
+        self.trigger2 = trigger2
+    def evaluate(self, story):
+        return self.trigger1.evaluate(story) or self.trigger2.evaluate(story)
 
 
 # Phrase Trigger
 # Question 9
 
-# TODO: PhraseTrigger
+class PhraseTrigger(Trigger):
+    def __init__(self, phrase):
+        self.phrase = phrase
+    def evaluate(self, story):
+        return self.phrase in story.get_subject() or self.phrase in story.get_title() or self.phrase in story.get_summary()
 
 
 #======================
@@ -122,11 +151,13 @@ def filter_stories(stories, triggerlist):
     Returns only those stories for whom
     a trigger in triggerlist fires.
     """
-    # TODO: Problem 10
-    # This is a placeholder (we're just returning all the stories, with no filtering) 
-    # Feel free to change this line!
-    return stories
-
+    selected = []
+    for story in stories:
+        for trigger in triggerlist:
+            if trigger.evaluate(story):
+                selected.append(story)
+    return selected
+        
 #======================
 # Part 4
 # User-Specified Triggers
@@ -159,7 +190,7 @@ import thread
 def main_thread(p):
     # A sample trigger list - you'll replace
     # this with something more configurable in Problem 11
-    t1 = SubjectTrigger("Obama")
+    t1 = TitleTrigger("Obama")
     t2 = SummaryTrigger("MIT")
     t3 = PhraseTrigger("Supreme Court")
     t4 = OrTrigger(t2, t3)
