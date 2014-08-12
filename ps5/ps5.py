@@ -82,11 +82,9 @@ class Trigger(object):
 
 class WordTrigger(Trigger):
     def __init__(self, word):
-        assert type(word) == str
         self.word = word
 
     def is_word_in(self, text):
-        assert type(text) == str
         word = self.word.lower()
         text = text.lower()
         for i in string.punctuation:
@@ -135,10 +133,10 @@ class OrTrigger(Trigger):
 
 class PhraseTrigger(Trigger):
     def __init__(self, phrase):
-        self.phrase = phrase
+        self.phrase = ' '.join(phrase)
+        print self.phrase
     def evaluate(self, story):
         return self.phrase in story.get_subject() or self.phrase in story.get_title() or self.phrase in story.get_summary()
-
 
 #======================
 # Part 3
@@ -163,6 +161,27 @@ def filter_stories(stories, triggerlist):
 # User-Specified Triggers
 #======================
 
+def generateTrigger(trigger_dict, trigger_name, trigger_type, trigger_arg):
+    if trigger_type == 'SUBJECT':
+        trigger = SubjectTrigger(trigger_arg)
+    elif trigger_type == 'SUMMARY':
+        trigger = SummaryTrigger(trigger_arg)
+    elif trigger_type == 'TITLE':
+        trigger = TitleTrigger(trigger_arg)
+    elif trigger_type == 'PHRASE':
+        trigger = PhraseTrigger(trigger_arg)
+    elif trigger_type == 'AND':
+        trigger = AndTrigger(trigger_dict[trigger_arg[0]], trigger_dict[trigger_arg[1]])
+    elif trigger_type == 'OR':
+        trigger = OrTrigger(trigger_dict[trigger_arg[0]], trigger_dict[trigger_arg[1]])
+    elif trigger_type == 'NOT':
+        trigger = NotTrigger(trigger_dict[trigger_name])
+
+    #This stores all of the created triggers; calling is done later by the ADD line(s)
+    trigger_dict[trigger_name] = trigger
+    
+    print trigger_dict
+
 def readTriggerConfig(filename):
     """
     Returns a list of trigger objects
@@ -173,32 +192,38 @@ def readTriggerConfig(filename):
     # to read in the file and eliminate
     # blank lines and comments
     triggerfile = open(filename, "r")
-    all = [ line.rstrip() for line in triggerfile.readlines() ]
+    all_lines = [ line.rstrip() for line in triggerfile.readlines() ]
     lines = []
-    for line in all:
+    for line in all_lines:
         if len(line) == 0 or line[0] == '#':
             continue
         lines.append(line)
 
-    # TODO: Problem 11
     # 'lines' has a list of lines you need to parse
     # Build a set of triggers from it and
     # return the appropriate ones
+    trigger_dict = {}
+    triggerlist = []
+    for line in lines:
+        line = line.split(' ')
+        if line[0] != 'ADD': 
+            if line[1] == 'PHRASE' or line[1] == 'AND' or line[1] == 'OR':
+                generateTrigger(trigger_dict, line[0], line[1], line[2:])
+
+            else:
+                generateTrigger(trigger_dict, line[0], line[1], line[2])
+        else:
+            for trig in line[1:]:
+                triggerlist.append(trigger_dict[trig])
+    return triggerlist
     
 import thread
 
 def main_thread(p):
-    # A sample trigger list - you'll replace
-    # this with something more configurable in Problem 11
-    t1 = TitleTrigger("Obama")
-    t2 = SummaryTrigger("MIT")
-    t3 = PhraseTrigger("Supreme Court")
-    t4 = OrTrigger(t2, t3)
-    triggerlist = [t1, t4]
     
-    # TODO: Problem 11
     # After implementing readTriggerConfig, uncomment this line 
-    #triggerlist = readTriggerConfig("triggers.txt")
+    triggerlist = readTriggerConfig("triggers.txt")
+    print triggerlist
 
     guidShown = []
     
